@@ -1,5 +1,5 @@
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 require("dotenv").config();
 const app = express();
@@ -37,6 +37,18 @@ async function run() {
             const newProduct = req.body;
             const result = await productsColl.insertOne(newProduct);
             res.send(result);
+        });
+
+        app.patch("/products/:id", async (req, res) => {
+            const updatedProduct = req.body;
+            const productId = req.params.id;
+            const query = { _id: new ObjectId(productId) };
+            const update = { $set: updatedProduct };
+
+            const options = {};
+            const result = await productsColl.updateOne(query, update, options);
+
+            return res.send(result);
         });
 
         // Send a ping to confirm a successful connection
