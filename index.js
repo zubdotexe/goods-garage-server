@@ -25,6 +25,14 @@ async function run() {
         const db = client.db("goods_garage");
         const productsColl = db.collection("products");
 
+        // products related APIs
+
+        app.get("/products", async (req, res) => {
+            const cursor = productsColl.find({});
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
         app.post("/products", async (req, res) => {
             const newProduct = req.body;
             const result = await productsColl.insertOne(newProduct);
