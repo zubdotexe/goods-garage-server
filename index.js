@@ -75,11 +75,14 @@ async function run() {
                 }
 
                 if (
-                    !Number.isNaN(
-                        updatedProduct.importQty &&
-                            !Number.isInteger(updatedProduct.importQty)
-                    )
+                    !Number.isNaN(updatedProduct.importQty) &&
+                    !Number.isInteger(updatedProduct.importQty)
                 ) {
+                    console.log(
+                        "type of importQty",
+                        typeof updatedProduct.importQty
+                    );
+
                     return res.status(400).send({ message: "invalid input" });
                 }
 
