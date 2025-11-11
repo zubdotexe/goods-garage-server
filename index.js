@@ -62,7 +62,37 @@ async function run() {
             const updatedProduct = req.body;
             const productId = req.params.id;
             const query = { _id: new ObjectId(productId) };
-            const update = { $set: updatedProduct };
+            // let update = { $set: {} };
+            let update;
+
+            if (updatedProduct.importQty) {
+                const oldProduct = await productsColl.findOne(query);
+
+                if (oldProduct.available_quantity < updatedProduct.importQty) {
+                    return res.status(400).send({
+                        message: "You cannot import more than what's available",
+                    });
+                }
+
+                if (
+                    !Number.isNaN(
+                        updatedProduct.importQty &&
+                            !Number.isInteger(updatedProduct.importQty)
+                    )
+                ) {
+                    return res.status(400).send({ message: "invalid input" });
+                }
+
+                // update.$inc = { available_quantity: -updatedProduct.importQty };
+                update = {
+                    $inc: { available_quantity: -updatedProduct.importQty },
+                };
+            } else {
+                // for (const key in updatedProduct) {
+                //     update.$set[key] = updatedProduct[key];
+                // }
+                update = { $set: updatedProduct };
+            }
 
             const options = {};
             const result = await productsColl.updateOne(query, update, options);
