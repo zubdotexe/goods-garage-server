@@ -124,9 +124,17 @@ async function run() {
 
         app.post("/users", async (req, res) => {
             const newUser = req.body;
-            const result = await usersColl.insertOne(newUser);
+            const userEmail = newUser.email;
+            query = { email: userEmail };
+            const match = await usersColl.findOne(query);
 
-            return res.send(result);
+            // check if the user already exists
+            if (match) {
+                return res.send({ message: "User already exists" });
+            } else {
+                const result = await usersColl.insertOne(newUser);
+                return res.send(result);
+            }
         });
 
         // Send a ping to confirm a successful connection
