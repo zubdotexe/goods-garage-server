@@ -25,6 +25,7 @@ async function run() {
         const db = client.db("goods_garage");
         const productsColl = db.collection("products");
         const usersColl = db.collection("users");
+        const importsColl = db.collection("imports");
         const exportsColl = db.collection("exports");
 
         // products related APIs
@@ -107,6 +108,15 @@ async function run() {
             const productId = req.params.id;
             const query = { _id: new ObjectId(productId) };
             const result = await productsColl.deleteOne(query);
+
+            return res.send(result);
+        });
+
+        // import related APIs
+
+        app.post("/imports", async (req, res) => {
+            const newImport = req.body;
+            const result = await importsColl.insertOne(newImport);
 
             return res.send(result);
         });
