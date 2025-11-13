@@ -115,8 +115,37 @@ async function run() {
         // import related APIs
 
         app.get("/imports", async (req, res) => {
-            const cursor = importsColl.find();
-            const result = await cursor.toArray();
+            const userEmail = req.query.email;
+            // const query = { importer_email: userEmail };
+
+            const pipeline = [
+                {
+                    $match: {
+                        importer_email: userEmail,
+                    },
+                },
+                {
+                    $addFields: {
+                        productObjId: { $toObjectId: "$product" }, // convert string → ObjectId
+                    },
+                },
+                {
+                    $lookup: {
+                        from: "products",
+                        localField: "productObjId",
+                        foreignField: "_id",
+                        as: "product_info",
+                    },
+                },
+                {
+                    $unwind: "$product_info",
+                },
+            ];
+
+            const result = await importsColl.aggregate(pipeline).toArray();
+
+            // const cursor = importsColl.find(query);
+            // const result = await cursor.toArray();
 
             return res.send(result);
         });
@@ -128,11 +157,20 @@ async function run() {
             return res.send(result);
         });
 
+        app.delete("/imports/:id", async (req, res) => {
+            const importId = req.params.id;
+
+            const query = { _id: new ObjectId(importId) };
+            const result = await importsColl.deleteOne(query);
+
+            return res.send(result);
+        })
+
         // exports related APIs
 
         app.get("/exports", async (req, res) => {
             const userEmail = req.query.email;
-            const query = { exporter_email: userEmail };
+            // const query = { exporter_email: userEmail };
 
             const pipeline = [
                 {
