@@ -113,6 +113,41 @@ async function run() {
 
         // exports related APIs
 
+        app.get("/exports", async (req, res) => {
+            const userEmail = req.query.email;
+            const query = { exporter_email: userEmail };
+
+            const pipeline = [
+                {
+                    $match: {
+                        exporter_email: userEmail,
+                    },
+                },
+                {
+                    $addFields: {
+                        productObjId: { $toObjectId: "$product" }, // convert string → ObjectId
+                    },
+                },
+                {
+                    $lookup: {
+                        from: "products",
+                        localField: "productObjId",
+                        foreignField: "_id",
+                        as: "product_info",
+                    },
+                },
+                {
+                    $unwind: "$product_info",
+                },
+            ];
+
+            const result = await exportsColl.aggregate(pipeline).toArray();
+
+            // const cursor = exportsColl.find(query);
+            // const result = await cursor.toArray();
+            res.send(result);
+        });
+
         app.post("/exports", async (req, res) => {
             const newExport = req.body;
             const result = await exportsColl.insertOne(newExport);
