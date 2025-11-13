@@ -114,6 +114,13 @@ async function run() {
 
         // import related APIs
 
+        app.get("/imports", async (req, res) => {
+            const cursor = importsColl.find();
+            const result = await cursor.toArray();
+
+            return res.send(result);
+        });
+
         app.post("/imports", async (req, res) => {
             const newImport = req.body;
             const result = await importsColl.insertOne(newImport);
