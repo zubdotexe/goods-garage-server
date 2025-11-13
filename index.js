@@ -6,7 +6,9 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-const serviceAccount = require("./goods-garage-firebase-adminsdk.json");
+// index.js
+const decoded = Buffer.from(process.env.FIREBASE_SERVICE_KEY, "base64").toString("utf8");
+const serviceAccount = JSON.parse(decoded);
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
@@ -53,7 +55,7 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        // await client.connect();
         const db = client.db("goods_garage");
         const productsColl = db.collection("products");
         const usersColl = db.collection("users");
