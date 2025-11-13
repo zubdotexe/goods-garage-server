@@ -1,13 +1,45 @@
 const express = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
+const admin = require("firebase-admin");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 3000;
 
+const serviceAccount = require("./goods-garage-firebase-adminsdk.json");
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+});
+
 // middleware
 app.use(cors());
 app.use(express.json());
+
+const verifyFireBaseToken = async (req, res, next) => {
+    
+    const authorization = req.headers.authorization;
+
+    if (!authorization) {
+        return res.status(401).send({ message: "unauthorized" });
+    }
+
+    const token = authorization.split(" ")[1];
+
+    if (!token) {
+        return res.status(401).send({ message: "unauthorized" });
+    }
+
+    try {
+        const decoded = await admin.auth().verifyIdToken(token);
+        req.token_email = decoded.email;
+        // console.log("after token validation", token_email);
+
+        next();
+    } catch {
+        return res.status(401).send({ message: "unauthorized" });
+    }
+};
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.iq0iryo.mongodb.net/?appName=Cluster0`;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -45,7 +77,9 @@ async function run() {
             res.send(result);
         });
 
-        app.get("/products/:id", async (req, res) => {
+        app.get("/products/:id", verifyFireBaseToken, async (req, res) => {
+            console.log("", req.headers);
+
             const productId = req.params.id;
             const query = { _id: new ObjectId(productId) };
             const result = await productsColl.findOne(query);
@@ -53,13 +87,13 @@ async function run() {
             return res.send(result);
         });
 
-        app.post("/products", async (req, res) => {
+        app.post("/products", verifyFireBaseToken, async (req, res) => {
             const newProduct = req.body;
             const result = await productsColl.insertOne(newProduct);
             res.send(result);
         });
 
-        app.patch("/products/:id", async (req, res) => {
+        app.patch("/products/:id", verifyFireBaseToken, async (req, res) => {
             const updatedProduct = req.body;
             const productId = req.params.id;
             const query = { _id: new ObjectId(productId) };
@@ -104,7 +138,7 @@ async function run() {
             return res.send(result);
         });
 
-        app.delete("/products/:id", async (req, res) => {
+        app.delete("/products/:id", verifyFireBaseToken, async (req, res) => {
             const productId = req.params.id;
             const query = { _id: new ObjectId(productId) };
             const result = await productsColl.deleteOne(query);
@@ -114,9 +148,15 @@ async function run() {
 
         // import related APIs
 
-        app.get("/imports", async (req, res) => {
+        app.get("/imports", verifyFireBaseToken, async (req, res) => {
             const userEmail = req.query.email;
             // const query = { importer_email: userEmail };
+
+            if (userEmail) {
+                if (userEmail !== req.token_email) {
+                    return res.status(403).send({ message: "forbidden" });
+                }
+            }
 
             const pipeline = [
                 {
@@ -150,27 +190,35 @@ async function run() {
             return res.send(result);
         });
 
-        app.post("/imports", async (req, res) => {
+        app.post("/imports", verifyFireBaseToken, async (req, res) => {
             const newImport = req.body;
             const result = await importsColl.insertOne(newImport);
 
             return res.send(result);
         });
 
-        app.delete("/imports/:id", async (req, res) => {
+        app.delete("/imports/:id", verifyFireBaseToken, async (req, res) => {
             const importId = req.params.id;
 
             const query = { _id: new ObjectId(importId) };
             const result = await importsColl.deleteOne(query);
 
             return res.send(result);
-        })
+        });
 
         // exports related APIs
 
-        app.get("/exports", async (req, res) => {
+        app.get("/exports", verifyFireBaseToken, async (req, res) => {
             const userEmail = req.query.email;
             // const query = { exporter_email: userEmail };
+
+            if (userEmail) {
+                console.log("", userEmail, req.token_email);
+
+                if (userEmail !== req.token_email) {
+                    return res.status(403).send({ message: "forbidden" });
+                }
+            }
 
             const pipeline = [
                 {
@@ -203,7 +251,7 @@ async function run() {
             res.send(result);
         });
 
-        app.post("/exports", async (req, res) => {
+        app.post("/exports", verifyFireBaseToken, async (req, res) => {
             const newExport = req.body;
             const result = await exportsColl.insertOne(newExport);
 
